@@ -1,67 +1,55 @@
-//
-//  ResultView.swift
-//  Gift Packing Calculator
-//
-//  Created by Денис Сизов on 25.12.2022.
-//
-
 import SwiftUI
-import shared
+import Shared
 
 struct ResultView: View {
     let size: Calculator.PaperSize
-    
+    let onNewGift: () -> Void
+
     var body: some View {
-        NavigationView {
-            VStack {
-                Text("Вот нужные размеры")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .padding()
-                    .padding(EdgeInsets(top: 0, leading: 0, bottom: 50, trailing: 0))
-                
-                VStack {
-                    HStack(alignment: .center) {
-                        Text("Высота")
-                        Spacer()
-                        Text(String(format: "%.1f", size.height))
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Text("Вот нужные размеры")
+                        .font(.system(size: 28, weight: .bold))
+                        .multilineTextAlignment(.center)
+                        .padding(.bottom, 16)
+                    Text("Размер бумаги в сантиметрах")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 34)
+
+                    VStack(spacing: 16) {
+                        resultRow("Высота", value: size.height, id: "paperHeight")
+                        resultRow("Ширина", value: size.width, id: "paperWidth")
                     }
-                    
-                    HStack {
-                        Text("Ширина")
-                        Spacer()
-                        Text(String(format: "%.1f", size.width))
-                    }
+                    .padding(20)
+                    .frame(width: 240)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(.red, lineWidth: 2))
+
+                    Button("Новый подарок", action: onNewGift)
+                        .buttonStyle(GiftButtonStyle())
+                        .accessibilityIdentifier("newGift")
+                        .padding(.top, 50)
                 }
-                .padding()
-                .frame(width: 200)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.red, lineWidth: 2)
-                )
-                
-                NavigationLink (
-                    destination: {
-                        SizesView()
-                    }, label: {
-                        Text("Новый подарок")
-                            .padding()
-                            .frame(width: 300)
-                            .background(.red)
-                            .cornerRadius(20)
-                            .foregroundColor(.white)
-                            .padding(EdgeInsets(top: 50, leading: 0, bottom: 0, trailing: 0))
-                    }
-                    
-                )
+                .frame(maxWidth: 348)
+                .padding(24)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
         }
-        .navigationBarHidden(true)
+    }
+
+    private func resultRow(_ label: String, value: Double, id: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value, format: .number.precision(.fractionLength(1)))
+                .fontWeight(.semibold)
+                .accessibilityIdentifier(id)
+        }
+        .font(.system(size: 17))
     }
 }
 
-struct ResultView_Previews: PreviewProvider {
-    static var previews: some View {
-        ResultView(size: Calculator.PaperSize(width: 50, height: 100))
-    }
+#Preview {
+    ResultView(size: Calculator.PaperSize(width: 33, height: 26.6667), onNewGift: {})
 }

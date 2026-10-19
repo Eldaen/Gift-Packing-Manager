@@ -1,53 +1,43 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+
 plugins {
-    kotlin("multiplatform")
-    kotlin("native.cocoapods")
-    id("com.android.library")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.multiplatform.library)
 }
 
-@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    targetHierarchy.default()
-
     android {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
-            }
-        }
+        namespace = "com.example.giftpackinghelper"
+        compileSdk = 37
+        minSdk = 27
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+        withHostTestBuilder {}.configure {}
     }
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
 
-    cocoapods {
-        summary = "Some description for the Shared Module"
-        homepage = "Link to the Shared Module homepage"
-        version = "1.0"
-        ios.deploymentTarget = "14.1"
-        podfile = project.file("../iosApp/Podfile")
-        framework {
-            baseName = "shared"
+    val xcframework = XCFramework("Shared")
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+            binaryOption("bundleId", "com.example.giftpackinghelper.shared")
+            xcframework.add(this)
         }
     }
-    
+
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                //put your multiplatform dependencies here
-            }
-        }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }
 
-android {
-    namespace = "com.example.giftpackinghelper"
-    compileSdk = 33
-    defaultConfig {
-        minSdk = 27
-    }
+// SPM resolves binary targets before Xcode build phases. Prepare the package
+// before opening Xcode, or use scripts/build-ios.sh.
+tasks.register<Sync>("exportSwiftPackage") {
+    group = "distribution"
+    description = "Build the device/simulator XCFramework and prepare the local Swift package."
+    dependsOn("assembleSharedReleaseXCFramework")
+    from(layout.buildDirectory.dir("XCFrameworks/release/Shared.xcframework"))
+    into(layout.projectDirectory.dir("../SharedPackage/Shared.xcframework"))
 }
